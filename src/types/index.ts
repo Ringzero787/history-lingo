@@ -36,6 +36,9 @@ export interface UserProfile {
   heartsRemaining: number;
   heartsRegenAt: Timestamp | null;
   lessonsCompleted: number;
+  perfectLessons: number;
+  dailyXp: number;
+  weeklyXp: number;
   createdAt: Timestamp;
 }
 
@@ -200,6 +203,53 @@ export interface LessonResult {
   xpEarned: number;
   perfectLesson: boolean;
   timeSpentSeconds: number;
+}
+
+// ---------------------------------------------------------------------------
+// Achievements
+// ---------------------------------------------------------------------------
+export type AchievementCategory = 'learning' | 'streak' | 'mastery' | 'level' | 'xp';
+
+export interface AchievementCondition {
+  field: string; // field on UserProfile to check (e.g. 'lessonsCompleted')
+  threshold: number;
+}
+
+export interface AchievementDefinition {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // emoji
+  category: AchievementCategory;
+  xpReward: number;
+  condition: AchievementCondition;
+}
+
+export interface UserAchievement {
+  achievementId: string;
+  unlockedAt: Timestamp;
+  xpRewarded: number;
+}
+
+// ---------------------------------------------------------------------------
+// Daily Challenge
+// ---------------------------------------------------------------------------
+export interface DailyChallenge {
+  date: string; // "2026-02-12"
+  eraId: string;
+  eraName: string;
+  lessonId: string;
+  title: string;
+  description: string;
+  xpBonus: number;
+  createdAt: Timestamp;
+}
+
+export interface DailyChallengeCompletion {
+  date: string;
+  lessonId: string;
+  xpEarned: number;
+  completedAt: Timestamp;
 }
 
 // ---------------------------------------------------------------------------

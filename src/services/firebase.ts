@@ -13,6 +13,7 @@ export const usersCollection = db.collection('users');
 export const erasCollection = db.collection('eras');
 export const leaderboardCollection = db.collection('leaderboard');
 export const battlesCollection = db.collection('battles');
+export const dailyChallengesCollection = db.collection('dailyChallenges');
 
 // Helper to get user document reference
 export function userDoc(uid: string) {

@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/authStore';
 import { Question, Lesson, LessonResult } from '../types';
 import { submitLessonResult } from '../services/lessons';
 import { deductHeart } from '../services/gamification';
+import { checkAchievements } from '../services/achievements';
 import { XP_REWARDS } from '../constants/xp';
 
 export function useLesson() {
@@ -36,7 +37,7 @@ export function useLesson() {
 
   // Check answer correctness based on question type
   const checkAnswer = useCallback(
-    (answer: number | string | boolean) => {
+    (answer: number | string | boolean | number[] | string[]) => {
       if (!currentQuestion) return;
 
       let correct = false;
@@ -60,6 +61,29 @@ export function useLesson() {
         case 'who_said_it':
           correct = answer === currentQuestion.correctIndex;
           break;
+        case 'timeline_order': {
+          const userOrder = answer as number[];
+          // Correct order: events sorted by year ascending
+          const correctOrder = [...currentQuestion.events]
+            .map((e, i) => ({ year: e.year, idx: i }))
+            .sort((a, b) => a.year - b.year)
+            .map((e) => e.idx);
+          correct =
+            userOrder.length === correctOrder.length &&
+            userOrder.every((val, i) => val === correctOrder[i]);
+          break;
+        }
+        case 'story_completion': {
+          const userAnswers = answer as string[];
+          correct = currentQuestion.blanks.every((blank, i) => {
+            const ua = (userAnswers[i] ?? '').toLowerCase().trim();
+            return (
+              ua === blank.answer.toLowerCase() ||
+              blank.acceptableAnswers.some((a) => a.toLowerCase() === ua)
+            );
+          });
+          break;
+        }
         default:
           break;
       }
@@ -107,6 +131,20 @@ export function useLesson() {
       if (newLevel > currentLevel) {
         useGameStore.getState().setLevel(newLevel);
         triggerLevelUp();
+      }
+
+      // Check for new achievements
+      const gameState = useGameStore.getState();
+      const newAchievements = await checkAchievements(user.uid, {
+        lessonsCompleted: (gameState.xp > 0 ? result.correctAnswers : 0) + (currentLesson?.questions.length ?? 0),
+        perfectLessons: perfect ? 1 : 0,
+        xp: gameState.xp + totalXpEarned,
+        level: newLevel,
+        currentStreak: gameState.currentStreak,
+        longestStreak: gameState.longestStreak,
+      } as any);
+      if (newAchievements.length > 0) {
+        useGameStore.getState().queueAchievements(newAchievements);
       }
     } catch (error) {
       console.error('Error submitting lesson result:', error);

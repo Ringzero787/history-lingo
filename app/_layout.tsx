@@ -8,13 +8,14 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { Colors } from '../src/constants/theme';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LevelUpModal } from '../src/components/gamification/LevelUpModal';
+import { AchievementModal } from '../src/components/gamification/AchievementModal';
 import { useGameStore } from '../src/stores/gameStore';
 
 export default function RootLayout() {
   useAuth();
 
   const { isAuthenticated, isLoading, hasCompletedOnboarding } = useAuthStore();
-  const { showLevelUpModal, level, dismissLevelUp } = useGameStore();
+  const { showLevelUpModal, level, dismissLevelUp, showAchievementModal, pendingAchievement, dismissAchievement } = useGameStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -60,6 +61,11 @@ export default function RootLayout() {
         visible={showLevelUpModal}
         newLevel={level}
         onDismiss={dismissLevelUp}
+      />
+      <AchievementModal
+        visible={showAchievementModal}
+        achievement={pendingAchievement}
+        onDismiss={dismissAchievement}
       />
     </GestureHandlerRootView>
   );

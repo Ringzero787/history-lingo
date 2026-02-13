@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeIn, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../constants/theme';
-import { MultipleChoiceQuestion } from '../../types';
+import { WhoSaidItQuestion } from '../../types';
 
-interface MultipleChoiceProps {
-  question: MultipleChoiceQuestion;
+interface WhoSaidItProps {
+  question: WhoSaidItQuestion;
   onAnswer: (selectedIndex: number) => void;
   isAnswered: boolean;
   isCorrect: boolean | null;
   selectedAnswer: number | null;
 }
 
-export function MultipleChoice({
+export function WhoSaidIt({
   question,
   onAnswer,
   isAnswered,
   isCorrect,
   selectedAnswer,
-}: MultipleChoiceProps) {
+}: WhoSaidItProps) {
   const getOptionStyle = (index: number) => {
     if (!isAnswered) return [styles.option];
 
@@ -45,7 +45,16 @@ export function MultipleChoice({
 
   return (
     <Animated.View entering={FadeIn.duration(300)} style={styles.container}>
-      <Text style={styles.prompt}>{question.prompt}</Text>
+      {/* Quote display */}
+      <View style={styles.quoteContainer}>
+        <Text style={styles.quoteMarks}>"</Text>
+        <Text style={styles.quoteText}>{question.quote}</Text>
+        <Text style={[styles.quoteMarks, styles.quoteMarksEnd]}>"</Text>
+      </View>
+
+      <Text style={styles.prompt}>Who said this?</Text>
+
+      {/* Options */}
       <View style={styles.optionsContainer}>
         {question.options.map((option, index) => (
           <Pressable
@@ -66,6 +75,16 @@ export function MultipleChoice({
           </Pressable>
         ))}
       </View>
+
+      {/* Context shown after answering */}
+      {isAnswered && (
+        <View style={[styles.contextBox, isCorrect ? styles.correctBox : styles.incorrectBox]}>
+          <Text style={styles.contextTitle}>
+            {isCorrect ? 'Correct!' : 'Not quite'}
+          </Text>
+          <Text style={styles.contextText}>{question.context}</Text>
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -74,12 +93,39 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  prompt: {
-    fontSize: FontSizes.xl,
-    fontWeight: '700',
-    color: Colors.text,
+  quoteContainer: {
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.lg,
-    lineHeight: 32,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.primary,
+  },
+  quoteMarks: {
+    fontSize: 48,
+    color: Colors.primary,
+    fontWeight: '900',
+    lineHeight: 48,
+    opacity: 0.6,
+  },
+  quoteMarksEnd: {
+    textAlign: 'right',
+    marginTop: -Spacing.sm,
+  },
+  quoteText: {
+    fontSize: FontSizes.lg,
+    fontWeight: '600',
+    color: Colors.text,
+    fontStyle: 'italic',
+    lineHeight: 28,
+    paddingHorizontal: Spacing.sm,
+  },
+  prompt: {
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    marginBottom: Spacing.md,
   },
   optionsContainer: {
     gap: Spacing.md,
@@ -138,5 +184,31 @@ const styles = StyleSheet.create({
   },
   dimmedText: {
     color: Colors.textMuted,
+  },
+  contextBox: {
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  correctBox: {
+    backgroundColor: Colors.success + '15',
+    borderWidth: 1,
+    borderColor: Colors.success + '30',
+  },
+  incorrectBox: {
+    backgroundColor: Colors.error + '15',
+    borderWidth: 1,
+    borderColor: Colors.error + '30',
+  },
+  contextTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: Spacing.xs,
+  },
+  contextText: {
+    fontSize: FontSizes.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
   },
 });

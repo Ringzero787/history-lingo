@@ -8,6 +8,7 @@ export const XP_REWARDS = {
   WIN_MULTIPLAYER_BATTLE: 100,
   LOSE_MULTIPLAYER_BATTLE: 25,
   COMPLETE_ERA: 500,
+  DAILY_CHALLENGE_BONUS: 50,
 } as const;
 
 // Level formula: level = floor(sqrt(totalXP / 100))

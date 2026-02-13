@@ -8,6 +8,7 @@ import { ProgressBar } from '../../src/components/ui/ProgressBar';
 import { XPBadge } from '../../src/components/ui/XPBadge';
 import { StreakCounter } from '../../src/components/gamification/StreakCounter';
 import { XPAnimation } from '../../src/components/gamification/XPAnimation';
+import { DailyChallengeCard } from '../../src/components/gamification/DailyChallengeCard';
 import { useGameStore } from '../../src/stores/gameStore';
 import { useUserStore } from '../../src/stores/userStore';
 import { useStreak } from '../../src/hooks/useStreak';
@@ -65,6 +66,9 @@ export default function HomeScreen() {
             <Text style={styles.goalComplete}>Daily goal achieved! 🎉</Text>
           )}
         </Card>
+
+        {/* Daily Challenge */}
+        <DailyChallengeCard />
 
         {/* Continue Learning */}
         <Card variant="elevated" style={styles.continueCard}>

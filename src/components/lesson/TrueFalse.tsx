@@ -20,7 +20,7 @@ export function TrueFalse({
   selectedAnswer,
 }: TrueFalseProps) {
   const getButtonStyle = (value: boolean) => {
-    if (!isAnswered) return styles.button;
+    if (!isAnswered) return [styles.button];
 
     if (value === question.correct) {
       return [styles.button, styles.correctButton];

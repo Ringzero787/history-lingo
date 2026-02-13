@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { DailyGoal, DAILY_GOALS } from '../constants/xp';
+import { AchievementDefinition } from '../types';
 
 interface GameState {
   // XP
@@ -21,6 +22,9 @@ interface GameState {
   showLevelUpModal: boolean;
   pendingXpAnimation: number;
   showStreakBrokenModal: boolean;
+  showAchievementModal: boolean;
+  pendingAchievement: AchievementDefinition | null;
+  achievementQueue: AchievementDefinition[];
 
   // Actions
   setXp: (xp: number) => void;
@@ -41,6 +45,9 @@ interface GameState {
   clearXpAnimation: () => void;
   triggerStreakBroken: () => void;
   dismissStreakBroken: () => void;
+  showAchievement: (achievement: AchievementDefinition) => void;
+  queueAchievements: (achievements: AchievementDefinition[]) => void;
+  dismissAchievement: () => void;
   syncFromProfile: (data: {
     xp: number;
     level: number;
@@ -69,6 +76,9 @@ export const useGameStore = create<GameState>((set) => ({
   showLevelUpModal: false,
   pendingXpAnimation: 0,
   showStreakBrokenModal: false,
+  showAchievementModal: false,
+  pendingAchievement: null,
+  achievementQueue: [],
 
   setXp: (xp) => set({ xp }),
   addXp: (amount) =>
@@ -93,6 +103,33 @@ export const useGameStore = create<GameState>((set) => ({
   clearXpAnimation: () => set({ pendingXpAnimation: 0 }),
   triggerStreakBroken: () => set({ showStreakBrokenModal: true }),
   dismissStreakBroken: () => set({ showStreakBrokenModal: false }),
+  showAchievement: (achievement) =>
+    set({ showAchievementModal: true, pendingAchievement: achievement }),
+  queueAchievements: (achievements) =>
+    set((state) => {
+      if (achievements.length === 0) return state;
+      // Show the first, queue the rest
+      return {
+        showAchievementModal: true,
+        pendingAchievement: achievements[0],
+        achievementQueue: [...state.achievementQueue, ...achievements.slice(1)],
+      };
+    }),
+  dismissAchievement: () =>
+    set((state) => {
+      const [next, ...rest] = state.achievementQueue;
+      if (next) {
+        return {
+          pendingAchievement: next,
+          achievementQueue: rest,
+        };
+      }
+      return {
+        showAchievementModal: false,
+        pendingAchievement: null,
+        achievementQueue: [],
+      };
+    }),
   syncFromProfile: (data) =>
     set({
       xp: data.xp,
@@ -117,5 +154,8 @@ export const useGameStore = create<GameState>((set) => ({
       showLevelUpModal: false,
       pendingXpAnimation: 0,
       showStreakBrokenModal: false,
+      showAchievementModal: false,
+      pendingAchievement: null,
+      achievementQueue: [],
     }),
 }));

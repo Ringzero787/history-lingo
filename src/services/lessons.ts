@@ -53,11 +53,17 @@ export async function submitLessonResult(uid: string, result: LessonResult): Pro
   const batch = firestore().batch();
 
   // Update user XP, level, and stats
-  batch.update(userRef, {
+  const userUpdates: Record<string, any> = {
     xp: firestore.FieldValue.increment(xpEarned),
+    dailyXp: firestore.FieldValue.increment(xpEarned),
+    weeklyXp: firestore.FieldValue.increment(xpEarned),
     lessonsCompleted: firestore.FieldValue.increment(1),
     lastActiveDate: today,
-  });
+  };
+  if (perfectLesson) {
+    userUpdates.perfectLessons = firestore.FieldValue.increment(1);
+  }
+  batch.update(userRef, userUpdates);
 
   // Update era progress
   batch.set(

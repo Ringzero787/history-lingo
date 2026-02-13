@@ -9,7 +9,7 @@ interface LessonState {
   // Lesson data
   currentLesson: Lesson | null;
   currentQuestionIndex: number;
-  answers: (number | string | string[] | boolean | null)[];
+  answers: (number | string | string[] | number[] | boolean | null)[];
   isCorrect: boolean | null;
   showExplanation: boolean;
   lessonComplete: boolean;
@@ -22,7 +22,7 @@ interface LessonState {
   setEras: (eras: Era[]) => void;
   setCurrentEra: (eraId: string) => void;
   startLesson: (lesson: Lesson) => void;
-  answerQuestion: (answer: number | string | string[] | boolean) => void;
+  answerQuestion: (answer: number | string | string[] | number[] | boolean) => void;
   setCorrect: (correct: boolean) => void;
   showExplanationAction: () => void;
   nextQuestion: () => void;

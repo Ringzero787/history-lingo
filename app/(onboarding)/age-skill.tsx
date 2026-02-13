@@ -47,6 +47,9 @@ export default function AgeSkillScreen() {
         heartsRemaining: HEARTS.MAX_HEARTS,
         heartsRegenAt: null,
         lessonsCompleted: 0,
+        perfectLessons: 0,
+        dailyXp: 0,
+        weeklyXp: 0,
         createdAt: firestore.Timestamp.now(),
       };
 

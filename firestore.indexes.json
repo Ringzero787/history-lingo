@@ -15,6 +15,28 @@
         { "fieldPath": "eraId", "order": "ASCENDING" },
         { "fieldPath": "lastPlayed", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "currentStreak", "order": "ASCENDING" },
+        { "fieldPath": "lastActiveDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "dailyXp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "weeklyXp", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -7,18 +7,33 @@ import { Card } from '../../src/components/ui/Card';
 import { Button } from '../../src/components/ui/Button';
 import { XPBadge } from '../../src/components/ui/XPBadge';
 import { StreakCounter } from '../../src/components/gamification/StreakCounter';
+import { AchievementBadge } from '../../src/components/gamification/AchievementBadge';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useUserStore } from '../../src/stores/userStore';
 import { useGameStore } from '../../src/stores/gameStore';
 import { signOut } from '../../src/services/auth';
+import { fetchUserAchievements } from '../../src/services/achievements';
+import { ACHIEVEMENTS } from '../../src/constants/achievements';
 import { getLevelTitle, xpForLevel } from '../../src/constants/xp';
 import { ProgressBar } from '../../src/components/ui/ProgressBar';
+import { UserAchievement } from '../../src/types';
 
 export default function ProfileScreen() {
   const { user } = useAuthStore();
   const { profile } = useUserStore();
   const { xp, level, currentStreak, longestStreak, heartsRemaining } = useGameStore();
   const router = useRouter();
+  const [earnedIds, setEarnedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (user?.uid) {
+      fetchUserAchievements(user.uid)
+        .then((achievements) => {
+          setEarnedIds(new Set(achievements.map((a) => a.achievementId)));
+        })
+        .catch(console.error);
+    }
+  }, [user?.uid]);
 
   const title = getLevelTitle(level);
   const nextLevelXp = xpForLevel(level + 1);
@@ -87,6 +102,18 @@ export default function ProfileScreen() {
             <Text style={styles.statValue}>{profile?.lessonsCompleted ?? 0}</Text>
             <Text style={styles.statLabel}>Lessons Done</Text>
           </Card>
+        </View>
+
+        {/* Achievements */}
+        <Text style={styles.sectionTitle}>Achievements</Text>
+        <View style={styles.achievementsGrid}>
+          {ACHIEVEMENTS.map((achievement) => (
+            <AchievementBadge
+              key={achievement.id}
+              achievement={achievement}
+              unlocked={earnedIds.has(achievement.id)}
+            />
+          ))}
         </View>
 
         {/* Sign Out */}
@@ -187,5 +214,15 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.textSecondary,
     fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  achievementsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
   },
 });

@@ -11,6 +11,9 @@ import { XPAnimation } from '../../src/components/gamification/XPAnimation';
 import { MultipleChoice } from '../../src/components/lesson/MultipleChoice';
 import { TrueFalse } from '../../src/components/lesson/TrueFalse';
 import { FillInBlank } from '../../src/components/lesson/FillInBlank';
+import { TimelineOrder } from '../../src/components/lesson/TimelineOrder';
+import { WhoSaidIt } from '../../src/components/lesson/WhoSaidIt';
+import { StoryCompletion } from '../../src/components/lesson/StoryCompletion';
 import { useLesson } from '../../src/hooks/useLesson';
 import { useLessonStore } from '../../src/stores/lessonStore';
 import { useGameStore } from '../../src/stores/gameStore';
@@ -169,19 +172,51 @@ export default function LessonScreen() {
                 isCorrect={isCorrect}
               />
             )}
+
+            {currentQuestion.type === 'timeline_order' && (
+              <TimelineOrder
+                question={currentQuestion}
+                onAnswer={(order) => checkAnswer(order)}
+                isAnswered={isCorrect !== null}
+                isCorrect={isCorrect}
+              />
+            )}
+
+            {currentQuestion.type === 'who_said_it' && (
+              <WhoSaidIt
+                question={currentQuestion}
+                onAnswer={(idx) => checkAnswer(idx)}
+                isAnswered={isCorrect !== null}
+                isCorrect={isCorrect}
+                selectedAnswer={useLessonStore.getState().answers[currentQuestionIndex] as number | null}
+              />
+            )}
+
+            {currentQuestion.type === 'story_completion' && (
+              <StoryCompletion
+                question={currentQuestion}
+                onAnswer={(answers) => checkAnswer(answers)}
+                isAnswered={isCorrect !== null}
+                isCorrect={isCorrect}
+              />
+            )}
           </>
         )}
 
         {/* Explanation / Fun Fact */}
         {showExplanation && currentQuestion && (
           <Animated.View entering={FadeIn.duration(300)} style={styles.explanationContainer}>
-            {'explanation' in currentQuestion && (
+            {('explanation' in currentQuestion || 'context' in currentQuestion) && (
               <View style={[styles.explanationBox, isCorrect ? styles.correctBox : styles.incorrectBox]}>
                 <Text style={styles.explanationTitle}>
                   {isCorrect ? 'Correct! ✓' : 'Not quite ✗'}
                 </Text>
                 <Text style={styles.explanationText}>
-                  {currentQuestion.explanation}
+                  {'explanation' in currentQuestion
+                    ? currentQuestion.explanation
+                    : 'context' in currentQuestion
+                      ? (currentQuestion as any).context
+                      : ''}
                 </Text>
               </View>
             )}
