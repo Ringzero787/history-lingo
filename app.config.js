@@ -16,8 +16,7 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.historylingo.app",
-      googleServicesFile:
-        process.env.GOOGLE_SERVICE_INFO_PLIST || "./GoogleService-Info.plist",
+      googleServicesFile: "./GoogleService-Info.plist",
     },
     android: {
       adaptiveIcon: {
@@ -25,8 +24,7 @@ module.exports = {
         backgroundColor: "#1a1a2e",
       },
       package: "com.historylingo.app",
-      googleServicesFile:
-        process.env.GOOGLE_SERVICES_JSON || "./google-services.json",
+      googleServicesFile: "./google-services.json",
     },
     plugins: [
       "expo-router",

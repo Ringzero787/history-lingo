@@ -27,9 +27,9 @@ firebase-debug.*.log
 functions/.env
 functions/.env.*
 
-# Firebase credentials
-google-services.json
-GoogleService-Info.plist
+# Firebase credentials (safe to commit per Google docs - keys are app-restricted)
+# google-services.json
+# GoogleService-Info.plist
 
 # IDE
 .vscode/
@@ -38,6 +38,7 @@ GoogleService-Info.plist
 # OS
 .DS_Store
 Thumbs.db
+nul
 
 # TypeScript
 *.tsbuildinfo
