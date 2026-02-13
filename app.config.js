@@ -40,6 +40,7 @@ module.exports = {
         },
       ],
       ["./plugins/withKotlinVersion", "2.0.21"],
+      "./plugins/withFixBuildGradle",
     ],
     experiments: {
       typedRoutes: true,
