@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../src/constants/theme';
 import { useUserStore } from '../../src/stores/userStore';
 import { useLessonStore } from '../../src/stores/lessonStore';
 import { getCategoryForTopic, getTopicById, HISTORY_CATEGORIES, HistoryCategory } from '../../src/constants/eras';
-import { fetchLessons } from '../../src/services/lessons';
+import { fetchLessons, generateLessonForTopic } from '../../src/services/lessons';
 import { Lesson } from '../../src/types';
 
 interface GroupedTopics {
@@ -20,6 +20,7 @@ export default function TimelineScreen() {
   const router = useRouter();
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
   const [topicLessons, setTopicLessons] = useState<Record<string, Lesson[]>>({});
+  const [generatingTopic, setGeneratingTopic] = useState<string | null>(null);
 
   // Group user's selected topics by parent category
   const groupedTopics = useMemo<GroupedTopics[]>(() => {
@@ -52,10 +53,32 @@ export default function TimelineScreen() {
     if (!topicLessons[topicId]) {
       try {
         const lessons = await fetchLessons(topicId);
-        setTopicLessons((prev) => ({ ...prev, [topicId]: lessons }));
+        if (lessons.length > 0) {
+          setTopicLessons((prev) => ({ ...prev, [topicId]: lessons }));
+        } else {
+          // No lessons exist yet — generate the first one
+          await handleGenerateLesson(topicId);
+        }
       } catch (err) {
         console.error('Failed to fetch lessons:', err);
       }
+    }
+  };
+
+  const handleGenerateLesson = async (topicId: string) => {
+    if (!profile) return;
+    setGeneratingTopic(topicId);
+    try {
+      const existingLessons = topicLessons[topicId] ?? [];
+      const nextOrder = existingLessons.length + 1;
+      await generateLessonForTopic(topicId, profile.skillLevel, profile.age, nextOrder);
+      // Re-fetch lessons after generation
+      const lessons = await fetchLessons(topicId);
+      setTopicLessons((prev) => ({ ...prev, [topicId]: lessons }));
+    } catch (err: any) {
+      console.error('Failed to generate lesson:', err);
+    } finally {
+      setGeneratingTopic(null);
     }
   };
 
@@ -135,35 +158,50 @@ export default function TimelineScreen() {
                     {/* Expanded lesson list */}
                     {isExpanded && (
                       <View style={styles.lessonList}>
-                        {lessons.length > 0 ? (
-                          lessons.map((lesson, li) => {
-                            const isLessonUnlocked = li === 0 || (progress && progress.completedLessons >= li);
-                            return (
-                              <Pressable
-                                key={lesson.id}
-                                onPress={() => isLessonUnlocked && handleStartLesson(topicId, lesson.id)}
-                                disabled={!isLessonUnlocked}
-                                style={[
-                                  styles.lessonItem,
-                                  !isLessonUnlocked && styles.lessonLocked,
-                                ]}
-                              >
-                                <View style={[styles.lessonDot, { backgroundColor: isLessonUnlocked ? group.category.color : Colors.textMuted }]}>
-                                  <Text style={styles.lessonNumber}>{li + 1}</Text>
-                                </View>
-                                <View style={styles.lessonInfo}>
-                                  <Text style={[styles.lessonTitle, !isLessonUnlocked && styles.lockedText]}>
-                                    {lesson.title}
-                                  </Text>
-                                  <Text style={styles.lessonMeta}>
-                                    {lesson.xpReward} XP · {lesson.estimatedMinutes} min
-                                  </Text>
-                                </View>
-                              </Pressable>
-                            );
-                          })
+                        {generatingTopic === topicId ? (
+                          <View style={styles.generatingContainer}>
+                            <ActivityIndicator size="small" color={group.category.color} />
+                            <Text style={styles.generatingText}>Generating lesson with AI...</Text>
+                          </View>
+                        ) : lessons.length > 0 ? (
+                          <>
+                            {lessons.map((lesson, li) => {
+                              const isLessonUnlocked = li === 0 || (progress && progress.completedLessons >= li);
+                              return (
+                                <Pressable
+                                  key={lesson.id}
+                                  onPress={() => isLessonUnlocked && handleStartLesson(topicId, lesson.id)}
+                                  disabled={!isLessonUnlocked}
+                                  style={[
+                                    styles.lessonItem,
+                                    !isLessonUnlocked && styles.lessonLocked,
+                                  ]}
+                                >
+                                  <View style={[styles.lessonDot, { backgroundColor: isLessonUnlocked ? group.category.color : Colors.textMuted }]}>
+                                    <Text style={styles.lessonNumber}>{li + 1}</Text>
+                                  </View>
+                                  <View style={styles.lessonInfo}>
+                                    <Text style={[styles.lessonTitle, !isLessonUnlocked && styles.lockedText]}>
+                                      {lesson.title}
+                                    </Text>
+                                    <Text style={styles.lessonMeta}>
+                                      {lesson.xpReward} XP · {lesson.estimatedMinutes} min
+                                    </Text>
+                                  </View>
+                                </Pressable>
+                              );
+                            })}
+                            <Pressable
+                              onPress={() => handleGenerateLesson(topicId)}
+                              style={[styles.generateButton, { borderColor: group.category.color }]}
+                            >
+                              <Text style={[styles.generateButtonText, { color: group.category.color }]}>
+                                + Generate Next Lesson
+                              </Text>
+                            </Pressable>
+                          </>
                         ) : (
-                          <Text style={styles.noLessons}>Loading lessons...</Text>
+                          <Text style={styles.noLessons}>No lessons yet. Tap to expand and generate!</Text>
                         )}
                       </View>
                     )}
@@ -327,5 +365,26 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: FontSizes.sm,
     padding: Spacing.md,
+  },
+  generatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  generatingText: {
+    color: Colors.textSecondary,
+    fontSize: FontSizes.sm,
+  },
+  generateButton: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    alignItems: 'center',
+  },
+  generateButtonText: {
+    fontSize: FontSizes.sm,
+    fontWeight: '600',
   },
 });

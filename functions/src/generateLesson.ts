@@ -88,7 +88,13 @@ export const generateLesson = onCall(
 
       // Parse and validate with Zod
       const parsed = JSON.parse(responseText);
-      const validated = lessonSchema.parse(parsed);
+      const validationResult = lessonSchema.safeParse(parsed);
+      if (!validationResult.success) {
+        console.error("Zod validation errors:", JSON.stringify(validationResult.error.issues, null, 2));
+        console.error("First question sample:", JSON.stringify(parsed.questions?.[0], null, 2));
+        throw validationResult.error;
+      }
+      const validated = validationResult.data;
 
       // Calculate estimated time (about 30 seconds per question)
       const estimatedMinutes = Math.ceil(validated.questions.length * 0.5);

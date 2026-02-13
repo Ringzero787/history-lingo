@@ -1,7 +1,17 @@
 import { eraLessonsCollection, erasCollection, userProgressCollection, userDoc } from './firebase';
+import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { Lesson, Era, EraProgress, LessonResult } from '../types';
+import { Lesson, Era, EraProgress, LessonResult, AgeGroup, SkillLevel, AgeCategory } from '../types';
 import { XP_REWARDS, calculateLevel } from '../constants/xp';
+import { getTopicById } from '../constants/eras';
+
+const CLOUD_FUNCTION_URL = 'https://us-central1-history-lingo.cloudfunctions.net/generateLesson';
+
+function ageGroupToCategory(age: AgeGroup): AgeCategory {
+  if (age === 'under13') return 'child';
+  if (age === '13-17') return 'teen';
+  return 'adult';
+}
 
 // Fetch all eras
 export async function fetchEras(): Promise<Era[]> {
@@ -33,6 +43,45 @@ export async function fetchEraProgress(uid: string, eraId: string): Promise<EraP
   const doc = await userProgressCollection(uid).doc(eraId).get();
   if (!doc.exists) return null;
   return doc.data() as EraProgress;
+}
+
+// Generate a lesson for a topic via the Cloud Function
+export async function generateLessonForTopic(
+  topicId: string,
+  skillLevel: SkillLevel,
+  ageGroup: AgeGroup,
+  lessonOrder: number = 1,
+): Promise<{ lessonId: string }> {
+  const topic = getTopicById(topicId);
+  const topicName = topic?.name ?? topicId;
+
+  const idToken = await auth().currentUser?.getIdToken();
+  if (!idToken) throw new Error('Not authenticated');
+
+  const response = await fetch(CLOUD_FUNCTION_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({
+      data: {
+        eraId: topicId,
+        subcategory: topicName,
+        difficulty: skillLevel,
+        ageGroup: ageGroupToCategory(ageGroup),
+        lessonOrder,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Generation failed: ${text}`);
+  }
+
+  const json = await response.json();
+  return { lessonId: json.result?.lessonId ?? json.lessonId };
 }
 
 // Submit lesson result and update user progress

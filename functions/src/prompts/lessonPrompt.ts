@@ -47,16 +47,7 @@ Create a lesson with:
 
 1. **Title**: A compelling, specific title for this lesson (not just the era name)
 2. **Description**: A 1-2 sentence hook that makes students want to learn
-3. **Questions** (8-12 questions): Mix of the following types:
-   - **multiple_choice**: 4 options, one correct, with explanation
-   - **true_false**: A statement that is clearly true or false, with explanation
-   - **fill_blank**: A sentence with a ___ blank to fill in, with answer and acceptable alternatives
-   - **timeline_order**: 3-6 events to order chronologically
-   - **who_said_it**: A historical quote with 4 possible speakers
-   - **story_completion**: A narrative paragraph with blanks to fill
-
-   Use a good mix of at least 3 different question types. Ensure questions build from easier to harder within the lesson.
-
+3. **Questions** (8-12 questions): Use a good mix of at least 3 different question types from the types below. Ensure questions build from easier to harder.
 4. **Fun Facts** (3-8): Interesting "did you know?" facts related to the lesson topic
 
 ## Quality Requirements
@@ -67,15 +58,63 @@ Create a lesson with:
 - Content must be appropriate for the target age group
 
 ## Output Format
-Respond with a valid JSON object matching this exact structure:
+Respond with a valid JSON object. You MUST use the EXACT field names shown below for each question type. Do not rename or omit any fields.
+
 {
-  "title": "string",
-  "description": "string",
+  "title": "Lesson Title Here",
+  "description": "A 1-2 sentence hook.",
   "questions": [
-    // Mix of question types as described above
+    {
+      "type": "multiple_choice",
+      "prompt": "What was the main cause of...?",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 2,
+      "explanation": "The correct answer is C because..."
+    },
+    {
+      "type": "true_false",
+      "statement": "Napoleon was born in Corsica.",
+      "correct": true,
+      "explanation": "Napoleon was indeed born in Corsica in 1769."
+    },
+    {
+      "type": "fill_blank",
+      "template": "The ___ was signed in 1215 by King John.",
+      "answer": "Magna Carta",
+      "acceptableAnswers": ["Magna Carta", "magna carta"],
+      "explanation": "The Magna Carta was a charter of rights..."
+    },
+    {
+      "type": "timeline_order",
+      "prompt": "Put these events in chronological order:",
+      "events": [
+        {"text": "Event one happened", "year": 1066},
+        {"text": "Event two happened", "year": 1215},
+        {"text": "Event three happened", "year": 1453}
+      ],
+      "explanation": "These events span from the Norman Conquest to..."
+    },
+    {
+      "type": "who_said_it",
+      "quote": "I came, I saw, I conquered.",
+      "options": ["Julius Caesar", "Alexander the Great", "Napoleon", "Genghis Khan"],
+      "correctIndex": 0,
+      "context": "Julius Caesar reportedly said this after..."
+    },
+    {
+      "type": "story_completion",
+      "narrative": "In 1492, ___ set sail across the Atlantic Ocean. His expedition was funded by ___ of Spain.",
+      "blanks": [
+        {"answer": "Columbus", "acceptableAnswers": ["Columbus", "Christopher Columbus"]},
+        {"answer": "Isabella", "acceptableAnswers": ["Isabella", "Queen Isabella"]}
+      ],
+      "explanation": "Christopher Columbus's voyage was funded by..."
+    }
   ],
-  "funFacts": ["string", ...]
-}`;
+  "funFacts": ["Did you know that...", "Interestingly,...", "A lesser-known fact is..."]
+}
+
+CRITICAL: Use EXACTLY these field names: "prompt" (not "question"), "correctIndex" (not "correct_answer" or "answer_index"), "statement" (not "question" or "prompt"), "template" (not "sentence" or "question"), "acceptableAnswers" (not "acceptable_answers"), "context" (not "explanation" for who_said_it), "narrative" (not "story" or "text"), "blanks" (not "answers").`;
 }
 
 export const SYSTEM_PROMPT = `You are HistoryLingo AI, an expert history educator that creates engaging, accurate, and age-appropriate educational content. You generate structured lesson data in JSON format for a mobile learning application. Your lessons are fun, informative, and pedagogically sound. You always ensure historical accuracy and cite well-established facts.`;
