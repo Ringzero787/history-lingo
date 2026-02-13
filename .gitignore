@@ -27,9 +27,9 @@ firebase-debug.*.log
 functions/.env
 functions/.env.*
 
-# Firebase credentials (safe to commit per Google docs - keys are app-restricted)
-# google-services.json
-# GoogleService-Info.plist
+# Firebase credentials (keep out of public repos)
+google-services.json
+GoogleService-Info.plist
 
 # IDE
 .vscode/
