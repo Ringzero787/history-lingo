@@ -6,6 +6,7 @@ import { Colors, Spacing } from '../../src/constants/theme';
 import { Button } from '../../src/components/ui/Button';
 import { SkillSlider } from '../../src/components/onboarding/SkillSlider';
 import { useAuthStore } from '../../src/stores/authStore';
+import { useUserStore } from '../../src/stores/userStore';
 import { userDoc } from '../../src/services/firebase';
 import { AgeGroup, SkillLevel, UserProfile } from '../../src/types';
 import { HEARTS } from '../../src/constants/xp';
@@ -54,6 +55,7 @@ export default function AgeSkillScreen() {
       };
 
       await userDoc(user.uid).set(profile);
+      useUserStore.getState().setProfile(profile as any);
       setHasCompletedOnboarding(true);
       router.replace('/(tabs)/home');
     } catch (err: any) {
