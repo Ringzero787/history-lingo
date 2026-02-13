@@ -48,6 +48,7 @@ module.exports = {
         },
       ],
       "./plugins/withFixBuildGradle",
+      ["./plugins/withKotlinOverride", "2.0.21"],
     ],
     experiments: {
       typedRoutes: true,
