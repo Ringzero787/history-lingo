@@ -39,6 +39,7 @@ module.exports = {
           imageWidth: 200,
         },
       ],
+      ["./plugins/withKotlinVersion", "2.0.21"],
     ],
     experiments: {
       typedRoutes: true,
