@@ -17,6 +17,9 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: "com.historylingo.app",
       googleServicesFile: "./GoogleService-Info.plist",
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+      },
     },
     android: {
       adaptiveIcon: {
