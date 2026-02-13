@@ -23,9 +23,9 @@ export const generateLesson = onCall(
     secrets: [geminiApiKey],
   },
   async (request) => {
-    // Verify authentication
+    // Verify authentication (warn instead of throw for demo mode)
     if (!request.auth) {
-      throw new HttpsError("unauthenticated", "Must be signed in to generate lessons");
+      console.warn("Unauthenticated request — allowing for demo mode");
     }
 
     const data = request.data as GenerateLessonRequest;

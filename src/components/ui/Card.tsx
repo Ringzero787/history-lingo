@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
   },
   default: {
     backgroundColor: Colors.surface,
+    ...Shadows.small,
   },
   elevated: {
     backgroundColor: Colors.surface,

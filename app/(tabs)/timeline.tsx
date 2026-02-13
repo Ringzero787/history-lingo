@@ -1,132 +1,178 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../src/constants/theme';
 import { useUserStore } from '../../src/stores/userStore';
-import { useGameStore } from '../../src/stores/gameStore';
 import { useLessonStore } from '../../src/stores/lessonStore';
-import { ERA_DEFINITIONS } from '../../src/constants/eras';
+import { getCategoryForTopic, getTopicById, HISTORY_CATEGORIES, HistoryCategory } from '../../src/constants/eras';
 import { fetchLessons } from '../../src/services/lessons';
 import { Lesson } from '../../src/types';
 
+interface GroupedTopics {
+  category: HistoryCategory;
+  topicIds: string[];
+}
+
 export default function TimelineScreen() {
-  const { xp } = useGameStore();
-  const { eraProgress } = useUserStore();
+  const { profile, eraProgress } = useUserStore();
   const { setCurrentEra } = useLessonStore();
   const router = useRouter();
-  const [expandedEra, setExpandedEra] = useState<string | null>(null);
-  const [eraLessons, setEraLessons] = useState<Record<string, Lesson[]>>({});
+  const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
+  const [topicLessons, setTopicLessons] = useState<Record<string, Lesson[]>>({});
 
-  const handleExpandEra = async (eraId: string) => {
-    if (expandedEra === eraId) {
-      setExpandedEra(null);
+  // Group user's selected topics by parent category
+  const groupedTopics = useMemo<GroupedTopics[]>(() => {
+    const selectedTopicIds = profile?.preferences?.eras ?? [];
+    const groups = new Map<string, GroupedTopics>();
+
+    for (const topicId of selectedTopicIds) {
+      const category = getCategoryForTopic(topicId);
+      if (!category) continue;
+
+      if (!groups.has(category.id)) {
+        groups.set(category.id, { category, topicIds: [] });
+      }
+      groups.get(category.id)!.topicIds.push(topicId);
+    }
+
+    // Sort by category order in HISTORY_CATEGORIES
+    const categoryOrder = HISTORY_CATEGORIES.map((c) => c.id);
+    return Array.from(groups.values()).sort(
+      (a, b) => categoryOrder.indexOf(a.category.id) - categoryOrder.indexOf(b.category.id)
+    );
+  }, [profile?.preferences?.eras]);
+
+  const handleExpandTopic = async (topicId: string) => {
+    if (expandedTopic === topicId) {
+      setExpandedTopic(null);
       return;
     }
-    setExpandedEra(eraId);
-    if (!eraLessons[eraId]) {
+    setExpandedTopic(topicId);
+    if (!topicLessons[topicId]) {
       try {
-        const lessons = await fetchLessons(eraId);
-        setEraLessons((prev) => ({ ...prev, [eraId]: lessons }));
+        const lessons = await fetchLessons(topicId);
+        setTopicLessons((prev) => ({ ...prev, [topicId]: lessons }));
       } catch (err) {
         console.error('Failed to fetch lessons:', err);
       }
     }
   };
 
-  const handleStartLesson = (eraId: string, lessonId: string) => {
-    setCurrentEra(eraId);
-    router.push(`/lesson/${lessonId}?eraId=${eraId}`);
+  const handleStartLesson = (topicId: string, lessonId: string) => {
+    setCurrentEra(topicId);
+    router.push(`/lesson/${lessonId}?eraId=${topicId}`);
   };
+
+  if (groupedTopics.length === 0) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <Text style={styles.title}>Timeline</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No topics selected yet.</Text>
+          <Text style={styles.emptySubtext}>Complete onboarding to pick your history interests!</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <Text style={styles.title}>Timeline</Text>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Vertical timeline line */}
-        <View style={styles.timeline}>
-          {ERA_DEFINITIONS.map((era, index) => {
-            const isUnlocked = xp >= era.requiredXpToUnlock;
-            const progress = eraProgress[era.id];
-            const isExpanded = expandedEra === era.id;
-            const lessons = eraLessons[era.id] ?? [];
+        {groupedTopics.map((group) => (
+          <View key={group.category.id} style={styles.categorySection}>
+            {/* Category header */}
+            <View style={styles.categoryHeader}>
+              <Text style={styles.categoryEmoji}>{group.category.emoji}</Text>
+              <Text style={[styles.categoryName, { color: group.category.color }]}>
+                {group.category.name}
+              </Text>
+            </View>
 
-            return (
-              <View key={era.id}>
-                {/* Timeline connector */}
-                {index > 0 && (
-                  <View style={[styles.connector, !isUnlocked && styles.connectorLocked]} />
-                )}
+            {/* Topics in this category */}
+            <View style={styles.timeline}>
+              {group.topicIds.map((topicId, index) => {
+                const topic = getTopicById(topicId);
+                if (!topic) return null;
 
-                {/* Era node */}
-                <Pressable
-                  onPress={() => isUnlocked && handleExpandEra(era.id)}
-                  style={({ pressed }) => [
-                    styles.eraNode,
-                    { borderColor: isUnlocked ? era.color : Colors.textMuted },
-                    !isUnlocked && styles.eraNodeLocked,
-                    pressed && isUnlocked && styles.eraNodePressed,
-                  ]}
-                >
-                  <View style={[styles.eraDot, { backgroundColor: isUnlocked ? era.color : Colors.textMuted }]} />
-                  <View style={styles.eraInfo}>
-                    <Text style={[styles.eraName, !isUnlocked && styles.lockedText]}>
-                      {era.name}
-                    </Text>
-                    <Text style={styles.eraDescription} numberOfLines={1}>
-                      {isUnlocked ? era.description : `Unlock at ${era.requiredXpToUnlock} XP`}
-                    </Text>
-                    {progress && (
-                      <Text style={[styles.eraProgress, { color: era.color }]}>
-                        {progress.completedLessons} lessons completed
-                      </Text>
+                const progress = eraProgress[topicId];
+                const isExpanded = expandedTopic === topicId;
+                const lessons = topicLessons[topicId] ?? [];
+
+                return (
+                  <View key={topicId}>
+                    {/* Connector line */}
+                    {index > 0 && (
+                      <View style={[styles.connector, { backgroundColor: group.category.color }]} />
+                    )}
+
+                    {/* Topic node */}
+                    <Pressable
+                      onPress={() => handleExpandTopic(topicId)}
+                      style={({ pressed }) => [
+                        styles.topicNode,
+                        { borderColor: group.category.color },
+                        pressed && styles.topicNodePressed,
+                      ]}
+                    >
+                      <View style={[styles.topicDot, { backgroundColor: group.category.color }]}>
+                        <Text style={styles.topicDotEmoji}>{topic.emoji}</Text>
+                      </View>
+                      <View style={styles.topicInfo}>
+                        <Text style={styles.topicName}>{topic.name}</Text>
+                        {progress && (
+                          <Text style={[styles.topicProgress, { color: group.category.color }]}>
+                            {progress.completedLessons} lessons completed
+                          </Text>
+                        )}
+                      </View>
+                      {progress && progress.completedLessons > 0 && (
+                        <Text style={styles.checkIcon}>✓</Text>
+                      )}
+                    </Pressable>
+
+                    {/* Expanded lesson list */}
+                    {isExpanded && (
+                      <View style={styles.lessonList}>
+                        {lessons.length > 0 ? (
+                          lessons.map((lesson, li) => {
+                            const isLessonUnlocked = li === 0 || (progress && progress.completedLessons >= li);
+                            return (
+                              <Pressable
+                                key={lesson.id}
+                                onPress={() => isLessonUnlocked && handleStartLesson(topicId, lesson.id)}
+                                disabled={!isLessonUnlocked}
+                                style={[
+                                  styles.lessonItem,
+                                  !isLessonUnlocked && styles.lessonLocked,
+                                ]}
+                              >
+                                <View style={[styles.lessonDot, { backgroundColor: isLessonUnlocked ? group.category.color : Colors.textMuted }]}>
+                                  <Text style={styles.lessonNumber}>{li + 1}</Text>
+                                </View>
+                                <View style={styles.lessonInfo}>
+                                  <Text style={[styles.lessonTitle, !isLessonUnlocked && styles.lockedText]}>
+                                    {lesson.title}
+                                  </Text>
+                                  <Text style={styles.lessonMeta}>
+                                    {lesson.xpReward} XP · {lesson.estimatedMinutes} min
+                                  </Text>
+                                </View>
+                              </Pressable>
+                            );
+                          })
+                        ) : (
+                          <Text style={styles.noLessons}>Loading lessons...</Text>
+                        )}
+                      </View>
                     )}
                   </View>
-                  {!isUnlocked && <Text style={styles.lockIcon}>🔒</Text>}
-                  {progress && progress.completedLessons > 0 && isUnlocked && (
-                    <Text style={styles.checkIcon}>✓</Text>
-                  )}
-                </Pressable>
-
-                {/* Expanded lesson list */}
-                {isExpanded && isUnlocked && (
-                  <View style={styles.lessonList}>
-                    {lessons.length > 0 ? (
-                      lessons.map((lesson, li) => {
-                        const isLessonUnlocked = li === 0 || (progress && progress.completedLessons >= li);
-                        return (
-                          <Pressable
-                            key={lesson.id}
-                            onPress={() => isLessonUnlocked && handleStartLesson(era.id, lesson.id)}
-                            disabled={!isLessonUnlocked}
-                            style={[
-                              styles.lessonItem,
-                              !isLessonUnlocked && styles.lessonLocked,
-                            ]}
-                          >
-                            <View style={[styles.lessonDot, { backgroundColor: isLessonUnlocked ? era.color : Colors.textMuted }]}>
-                              <Text style={styles.lessonNumber}>{li + 1}</Text>
-                            </View>
-                            <View style={styles.lessonInfo}>
-                              <Text style={[styles.lessonTitle, !isLessonUnlocked && styles.lockedText]}>
-                                {lesson.title}
-                              </Text>
-                              <Text style={styles.lessonMeta}>
-                                {lesson.xpReward} XP · {lesson.estimatedMinutes} min
-                              </Text>
-                            </View>
-                          </Pressable>
-                        );
-                      })
-                    ) : (
-                      <Text style={styles.noLessons}>Loading lessons...</Text>
-                    )}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
+                );
+              })}
+            </View>
+          </View>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -146,6 +192,39 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Spacing.lg,
+    gap: Spacing.xl,
+  },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.xl,
+  },
+  emptyText: {
+    fontSize: FontSizes.lg,
+    fontWeight: '700',
+    color: Colors.text,
+    marginBottom: Spacing.sm,
+  },
+  emptySubtext: {
+    fontSize: FontSizes.md,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  categorySection: {
+    gap: Spacing.md,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  categoryEmoji: {
+    fontSize: 24,
+  },
+  categoryName: {
+    fontSize: FontSizes.lg,
+    fontWeight: '800',
   },
   timeline: {
     paddingLeft: Spacing.md,
@@ -153,14 +232,10 @@ const styles = StyleSheet.create({
   connector: {
     width: 3,
     height: 24,
-    backgroundColor: Colors.primary,
     marginLeft: 18,
+    opacity: 0.4,
   },
-  connectorLocked: {
-    backgroundColor: Colors.textMuted,
-    opacity: 0.3,
-  },
-  eraNode: {
+  topicNode: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
@@ -169,46 +244,40 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     gap: Spacing.md,
   },
-  eraNodeLocked: {
-    opacity: 0.5,
-  },
-  eraNodePressed: {
+  topicNodePressed: {
     opacity: 0.8,
     transform: [{ scale: 0.98 }],
   },
-  eraDot: {
+  topicDot: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  eraInfo: {
+  topicDotEmoji: {
+    fontSize: 18,
+  },
+  topicInfo: {
     flex: 1,
   },
-  eraName: {
+  topicName: {
     fontSize: FontSizes.md,
     fontWeight: '700',
     color: Colors.text,
   },
-  eraDescription: {
-    fontSize: FontSizes.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  eraProgress: {
+  topicProgress: {
     fontSize: FontSizes.xs,
     fontWeight: '600',
     marginTop: 4,
-  },
-  lockedText: {
-    color: Colors.textMuted,
-  },
-  lockIcon: {
-    fontSize: 20,
   },
   checkIcon: {
     fontSize: 20,
     color: Colors.success,
     fontWeight: '700',
+  },
+  lockedText: {
+    color: Colors.textMuted,
   },
   lessonList: {
     marginLeft: 38,
@@ -237,7 +306,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   lessonNumber: {
-    color: Colors.text,
+    color: Colors.textOnColor,
     fontSize: FontSizes.sm,
     fontWeight: '700',
   },

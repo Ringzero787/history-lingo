@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   levelNumber: {
     fontSize: FontSizes.hero,
     fontWeight: '900',
-    color: Colors.text,
+    color: Colors.textOnColor,
   },
   title: {
     fontSize: FontSizes.xl,

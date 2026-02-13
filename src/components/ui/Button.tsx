@@ -52,7 +52,7 @@ export function Button({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? Colors.primary : Colors.text} />
+        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? Colors.primary : Colors.textOnColor} />
       ) : (
         <Text style={textStyles}>{title}</Text>
       )}
@@ -109,10 +109,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   text_primary: {
-    color: Colors.text,
+    color: Colors.textOnColor,
   },
   text_secondary: {
-    color: Colors.text,
+    color: Colors.textOnColor,
   },
   text_outline: {
     color: Colors.primary,

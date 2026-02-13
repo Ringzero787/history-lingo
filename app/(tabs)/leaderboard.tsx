@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   activeTabText: {
-    color: Colors.text,
+    color: Colors.textOnColor,
   },
   scrollContent: {
     padding: Spacing.lg,

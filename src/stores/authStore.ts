@@ -1,12 +1,12 @@
 import { create } from 'zustand';
-import { AuthUser } from '../services/auth';
+import { AppUser } from '../services/auth';
 
 interface AuthState {
-  user: AuthUser | null;
+  user: AppUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
-  setUser: (user: AuthUser | null) => void;
+  setUser: (user: AppUser | null) => void;
   setLoading: (loading: boolean) => void;
   setHasCompletedOnboarding: (completed: boolean) => void;
   reset: () => void;

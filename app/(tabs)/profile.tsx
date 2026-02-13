@@ -11,12 +11,13 @@ import { AchievementBadge } from '../../src/components/gamification/AchievementB
 import { useAuthStore } from '../../src/stores/authStore';
 import { useUserStore } from '../../src/stores/userStore';
 import { useGameStore } from '../../src/stores/gameStore';
-import { signOut } from '../../src/services/auth';
+import { signOut, DEMO_MODE } from '../../src/services/auth';
+import { resetProgress, resetEverything } from '../../src/services/admin';
 import { fetchUserAchievements } from '../../src/services/achievements';
 import { ACHIEVEMENTS } from '../../src/constants/achievements';
 import { getLevelTitle, xpForLevel } from '../../src/constants/xp';
 import { ProgressBar } from '../../src/components/ui/ProgressBar';
-import { UserAchievement } from '../../src/types';
+import { userDoc } from '../../src/services/firebase';
 
 export default function ProfileScreen() {
   const { user } = useAuthStore();
@@ -49,13 +50,99 @@ export default function ProfileScreen() {
         text: 'Sign Out',
         style: 'destructive',
         onPress: async () => {
-          await signOut();
+          if (!DEMO_MODE) {
+            await signOut();
+          }
           useAuthStore.getState().reset();
           useUserStore.getState().reset();
           useGameStore.getState().reset();
         },
       },
     ]);
+  };
+
+  const handleResetOnboarding = () => {
+    Alert.alert(
+      'Reset Onboarding',
+      'This will take you back to the welcome screen. Your progress is preserved.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (user?.uid) {
+                await userDoc(user.uid).update({ hasCompletedOnboarding: false });
+              }
+              useAuthStore.getState().setHasCompletedOnboarding(false);
+              router.replace('/(onboarding)/welcome');
+            } catch (error) {
+              console.error('Reset onboarding failed:', error);
+              // Still navigate even if Firestore update fails
+              useAuthStore.getState().setHasCompletedOnboarding(false);
+              router.replace('/(onboarding)/welcome');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleResetProgress = () => {
+    Alert.alert(
+      'Reset All Progress',
+      'This will reset your XP, level, streak, hearts, and all lesson progress to zero. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Progress',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (user?.uid) {
+                await resetProgress(user.uid);
+              }
+              useGameStore.getState().reset();
+              useUserStore.getState().setEraProgress([]);
+              setEarnedIds(new Set());
+              Alert.alert('Done', 'All progress has been reset.');
+            } catch (error) {
+              console.error('Reset progress failed:', error);
+              Alert.alert('Error', 'Failed to reset progress. Check console.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleResetEverything = () => {
+    Alert.alert(
+      'Reset Everything',
+      'This will DELETE your entire user profile and all data. You will go through onboarding again. This cannot be undone!',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Everything',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (user?.uid) {
+                await resetEverything(user.uid);
+              }
+              useAuthStore.getState().setHasCompletedOnboarding(false);
+              useUserStore.getState().reset();
+              useGameStore.getState().reset();
+              router.replace('/(onboarding)/welcome');
+            } catch (error) {
+              console.error('Reset everything failed:', error);
+              Alert.alert('Error', 'Failed to reset. Check console.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -124,6 +211,34 @@ export default function ProfileScreen() {
           size="lg"
           fullWidth
         />
+
+        {/* Developer Tools */}
+        <View style={styles.devToolsSection}>
+          <Text style={styles.devToolsTitle}>Developer Tools</Text>
+          <Text style={styles.devToolsSubtitle}>For testing and development only</Text>
+
+          <Button
+            title="Reset Onboarding"
+            onPress={handleResetOnboarding}
+            variant="outline"
+            size="md"
+            fullWidth
+          />
+          <Button
+            title="Reset All Progress"
+            onPress={handleResetProgress}
+            variant="outline"
+            size="md"
+            fullWidth
+          />
+          <Button
+            title="Reset Everything"
+            onPress={handleResetEverything}
+            variant="outline"
+            size="md"
+            fullWidth
+          />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -154,7 +269,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: FontSizes.hero,
     fontWeight: '900',
-    color: Colors.text,
+    color: Colors.textOnColor,
   },
   displayName: {
     fontSize: FontSizes.xl,
@@ -224,5 +339,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.sm,
+  },
+  devToolsSection: {
+    borderWidth: 1,
+    borderColor: Colors.surfaceLight,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  devToolsTitle: {
+    fontSize: FontSizes.md,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  devToolsSubtitle: {
+    fontSize: FontSizes.xs,
+    color: Colors.textMuted,
+    marginBottom: Spacing.sm,
   },
 });

@@ -9,10 +9,23 @@ export default function PreferencesScreen() {
   const [selectedEras, setSelectedEras] = useState<string[]>([]);
   const router = useRouter();
 
-  const toggleEra = (eraId: string) => {
+  const toggleEra = (topicId: string) => {
     setSelectedEras((prev) =>
-      prev.includes(eraId) ? prev.filter((id) => id !== eraId) : [...prev, eraId]
+      prev.includes(topicId) ? prev.filter((id) => id !== topicId) : [...prev, topicId]
     );
+  };
+
+  const bulkToggle = (topicIds: string[], selected: boolean) => {
+    setSelectedEras((prev) => {
+      if (selected) {
+        // Add all that aren't already selected
+        const newIds = topicIds.filter((id) => !prev.includes(id));
+        return [...prev, ...newIds];
+      } else {
+        // Remove all from the list
+        return prev.filter((id) => !topicIds.includes(id));
+      }
+    });
   };
 
   return (
@@ -21,7 +34,11 @@ export default function PreferencesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <EraSelector selectedEras={selectedEras} onToggleEra={toggleEra} />
+        <EraSelector
+          selectedEras={selectedEras}
+          onToggleEra={toggleEra}
+          onBulkToggle={bulkToggle}
+        />
       </ScrollView>
       <View style={styles.footer}>
         <Button
