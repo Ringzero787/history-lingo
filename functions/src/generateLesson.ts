@@ -1,10 +1,11 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { defineSecret } from "firebase-functions/params";
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import * as admin from "firebase-admin";
 import { buildLessonPrompt, SYSTEM_PROMPT } from "./prompts/lessonPrompt";
 import { lessonSchema } from "./prompts/schemas";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY ?? "");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 interface GenerateLessonRequest {
   eraId: string;
@@ -19,6 +20,7 @@ export const generateLesson = onCall(
     timeoutSeconds: 120,
     memory: "512MiB",
     enforceAppCheck: false,
+    secrets: [geminiApiKey],
   },
   async (request) => {
     // Verify authentication
@@ -63,6 +65,8 @@ export const generateLesson = onCall(
     });
 
     try {
+      // Initialize Gemini client inside handler (secret available at request time)
+      const genAI = new GoogleGenerativeAI(geminiApiKey.value());
       // Call Gemini 2.5 Flash-Lite
       const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash-lite",
