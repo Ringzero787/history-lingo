@@ -2,8 +2,39 @@ import { useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useUserStore } from '../stores/userStore';
 import { useGameStore } from '../stores/gameStore';
-import { onAuthStateChanged, DEMO_MODE, DEMO_USER } from '../services/auth';
+import { onAuthStateChanged, DEMO_MODE, signInAnonymously } from '../services/auth';
 import { userDoc, userProgressCollection } from '../services/firebase';
+
+async function syncProfileToStores(
+  uid: string,
+  setProfile: any,
+  setHasCompletedOnboarding: any,
+  syncFromProfile: any,
+  setEraProgress: any,
+) {
+  const doc = await userDoc(uid).get();
+  if (doc.exists) {
+    const data = doc.data() as any;
+    setProfile(data);
+    setHasCompletedOnboarding(true);
+
+    syncFromProfile({
+      xp: data.xp ?? 0,
+      level: data.level ?? 0,
+      currentStreak: data.currentStreak ?? 0,
+      longestStreak: data.longestStreak ?? 0,
+      streakFreezes: data.streakFreezes ?? 0,
+      heartsRemaining: data.heartsRemaining ?? 5,
+      heartsRegenAt: data.heartsRegenAt?.toDate() ?? null,
+    });
+
+    const progressSnapshot = await userProgressCollection(uid).get();
+    const progressList = progressSnapshot.docs.map((d) => d.data() as any);
+    setEraProgress(progressList);
+  } else {
+    setHasCompletedOnboarding(false);
+  }
+}
 
 export function useAuth() {
   const { setUser, setLoading, setHasCompletedOnboarding } = useAuthStore();
@@ -12,42 +43,20 @@ export function useAuth() {
 
   useEffect(() => {
     if (DEMO_MODE) {
-      // Demo mode: skip Firebase Auth, use hardcoded user
+      // Demo mode: sign in anonymously to get a real auth token for Firestore
       (async () => {
-        setUser(DEMO_USER);
-
         try {
-          const profileDoc = await userDoc(DEMO_USER.uid).get();
-          if (profileDoc.exists) {
-            const profileData = profileDoc.data() as any;
-            setProfile(profileData);
-            setHasCompletedOnboarding(true);
-
-            syncFromProfile({
-              xp: profileData.xp ?? 0,
-              level: profileData.level ?? 0,
-              currentStreak: profileData.currentStreak ?? 0,
-              longestStreak: profileData.longestStreak ?? 0,
-              streakFreezes: profileData.streakFreezes ?? 0,
-              heartsRemaining: profileData.heartsRemaining ?? 5,
-              heartsRegenAt: profileData.heartsRegenAt?.toDate() ?? null,
-            });
-
-            const progressSnapshot = await userProgressCollection(DEMO_USER.uid).get();
-            const progressList = progressSnapshot.docs.map((doc) => doc.data() as any);
-            setEraProgress(progressList);
-          } else {
-            setHasCompletedOnboarding(false);
-          }
+          const demoUser = await signInAnonymously();
+          setUser(demoUser);
+          await syncProfileToStores(demoUser.uid, setProfile, setHasCompletedOnboarding, syncFromProfile, setEraProgress);
         } catch (error) {
-          console.error('Error fetching demo user profile:', error);
+          console.error('Demo sign-in error:', error);
           setHasCompletedOnboarding(false);
         }
-
         setLoading(false);
       })();
 
-      return; // No unsubscribe needed
+      return;
     }
 
     // Real Firebase Auth flow
@@ -60,28 +69,7 @@ export function useAuth() {
         });
 
         try {
-          const profileDoc = await userDoc(firebaseUser.uid).get();
-          if (profileDoc.exists) {
-            const profileData = profileDoc.data() as any;
-            setProfile(profileData);
-            setHasCompletedOnboarding(true);
-
-            syncFromProfile({
-              xp: profileData.xp ?? 0,
-              level: profileData.level ?? 0,
-              currentStreak: profileData.currentStreak ?? 0,
-              longestStreak: profileData.longestStreak ?? 0,
-              streakFreezes: profileData.streakFreezes ?? 0,
-              heartsRemaining: profileData.heartsRemaining ?? 5,
-              heartsRegenAt: profileData.heartsRegenAt?.toDate() ?? null,
-            });
-
-            const progressSnapshot = await userProgressCollection(firebaseUser.uid).get();
-            const progressList = progressSnapshot.docs.map((doc) => doc.data() as any);
-            setEraProgress(progressList);
-          } else {
-            setHasCompletedOnboarding(false);
-          }
+          await syncProfileToStores(firebaseUser.uid, setProfile, setHasCompletedOnboarding, syncFromProfile, setEraProgress);
         } catch (error) {
           console.error('Error fetching user profile:', error);
         }

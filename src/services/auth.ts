@@ -12,11 +12,16 @@ export interface AppUser {
 // Demo mode — set to false to require real Firebase Auth
 export const DEMO_MODE = true;
 
-export const DEMO_USER: AppUser = {
-  uid: 'demo-user-001',
-  email: 'demo@historylingo.app',
-  displayName: 'Demo Learner',
-};
+// Sign in anonymously (used for demo mode — gives a real auth token for Firestore)
+export async function signInAnonymously(): Promise<AppUser> {
+  const credential = await auth().signInAnonymously();
+  const user = credential.user;
+  return {
+    uid: user.uid,
+    email: 'demo@historylingo.app',
+    displayName: 'Demo Learner',
+  };
+}
 
 // Sign up with email and password
 export async function signUp(email: string, password: string, displayName: string): Promise<AuthUser> {
